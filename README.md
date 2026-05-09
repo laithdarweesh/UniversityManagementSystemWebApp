@@ -38,8 +38,6 @@ This project follows **Clean Architecture**:
 
 ## 🗄️ Database Structure
 
-## 🗄️ Database Structure
-
 The database is designed using a modular and maintainable approach, where each database component is separated into its own script file for better version control and scalability.
 
 ### 📁 Folder Structure
