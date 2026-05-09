@@ -67,17 +67,6 @@ The database is designed using a modular and maintainable approach, where each d
 - **Schema/**
   Contains the main database initialization script (`UMS_Database_Schema.sql`) which creates the database and basic configuration.
 
-Database/
-│
-├── Schema/
-├── Tables/
-├── StoredProcedures/
-├── Views/
-├── Functions/
-├── Indexes/
-└── Constraints/
-
-
 ---
 
 ## ⚙️ How to Run Project
