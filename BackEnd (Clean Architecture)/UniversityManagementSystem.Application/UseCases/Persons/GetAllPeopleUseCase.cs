@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Application.Interfaces.Persons;
-using UniversityManagementSystem.Application.Response_DTO;
+﻿using UniversityManagementSystem.Application.Interfaces.Persons;
+using UniversityManagementSystem.Application.Mappers.Persons;
+using UniversityManagementSystem.Application.Response_DTO.Persons;
 
 namespace UniversityManagementSystem.Application.UseCases.Persons
 {
@@ -17,11 +13,10 @@ namespace UniversityManagementSystem.Application.UseCases.Persons
         }
         public List<PersonDTO> Execute()
         {
-            var allPeople = _personRepository.GetAllPeople();
+            var allPeople = _personRepository.GetAll();
 
-            return allPeople.Select(a => new PersonDTO(a.PersonId, a.NationalNo, a.FirstName, a.SecondName, a.ThirdName,
-                a.LastName, a.DateOfBirth, a.Gendor, a.Email, a.NationalityCountryId, a.ImagePath,
-                a.CreatedDate, a.LastStatusDate, a.CreatedByAdminId)).ToList();
+            return allPeople.Select(PersonMapper.ToDto).ToList();
+            //return allPeople.Select(a => PersonMapper.ToDto(a)).ToList();
         }
     }
 }

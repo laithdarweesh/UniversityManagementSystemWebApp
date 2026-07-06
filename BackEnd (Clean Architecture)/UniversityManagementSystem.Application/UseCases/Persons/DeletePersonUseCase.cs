@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Application.Common.Exceptions;
-using UniversityManagementSystem.Application.Interfaces.Persons;
+﻿using UniversityManagementSystem.Application.Interfaces.Persons;
 
 namespace UniversityManagementSystem.Application.UseCases.Persons
 {
@@ -15,12 +9,6 @@ namespace UniversityManagementSystem.Application.UseCases.Persons
         {
             _personRepository = personRepository;
         }
-        public void Execute(int personId)
-        {
-            bool deleted = _personRepository.Delete(personId);
-
-            if (!deleted)
-                throw new NotFoundException($"Person with id {personId} not found");
-        }
+        public void Execute(int personId) => _personRepository.Delete(personId);
     }
 }

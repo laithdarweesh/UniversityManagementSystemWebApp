@@ -1,8 +1,14 @@
-﻿namespace UniversityManagementSystem.API.Request_DTO.Addresses
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace UniversityManagementSystem.API.Request_DTO.Addresses
 {
     public class AddAddressRequest
     {
-        public string AddressName { get; set; }
+        [StringLength(500)]
+        public required string AddressName { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue)]
         public int PersonId { get; set; }
     }
 }

@@ -1,30 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Application.Common.Exceptions;
+﻿using UniversityManagementSystem.Application.Common.Exceptions;
 using UniversityManagementSystem.Application.Interfaces.Countries;
-using UniversityManagementSystem.Application.Response_DTO;
-using UniversityManagementSystem.Domain.Entities;
+using UniversityManagementSystem.Application.Mappers.Countries;
+using UniversityManagementSystem.Application.Response_DTO.Countries;
 
-namespace UniversityManagementSystem.Application.UseCases.Country
+namespace UniversityManagementSystem.Application.UseCases.Countries
 {
     public class GetCountryByIdUseCase
     {
-        private readonly ICountryRepository _CountryRepository;
-        public GetCountryByIdUseCase(ICountryRepository CountryRepository)
+        private readonly ICountryRepository _countryRepository;
+        public GetCountryByIdUseCase(ICountryRepository countryRepository)
         {
-            _CountryRepository = CountryRepository;
+            _countryRepository = countryRepository;
         }
-        public CountryDTO Execute(int CountryId)
+        public CountryDTO Execute(int countryId)
         {
-            var Country = _CountryRepository.GetCountry(CountryId);
+            var country = _countryRepository.GetById(countryId);
 
-            if (Country == null)
-                throw new NotFoundException($"Country with id: {CountryId} not found");
+            if (country == null)
+                throw new NotFoundException($"Country with id: {countryId} not found");
 
-            return new CountryDTO(Country.CountryId, Country.CountryName);
+            return CountryMapper.ToDto(country);
         }
     }
 }

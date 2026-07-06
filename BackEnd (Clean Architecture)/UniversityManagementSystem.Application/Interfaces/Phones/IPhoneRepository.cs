@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Domain.Entities;
+﻿using UniversityManagementSystem.Domain.Entities;
 
 namespace UniversityManagementSystem.Application.Interfaces.Phones
 {
     public interface IPhoneRepository
     {
-        int Add(Phone Phone);
-        bool Update(Phone Phone);
-        Phone Get(int PhoneId);
-        Phone Get(string PhoneNumber);
-        List<Phone> GetAllPhones();
-        List<Phone> GetAllPhonesByPerson(int PersonId);
+        int Add(Phone phone);
+        void Update(Phone phone);
+        Phone? GetById(int phoneId);
+        Phone? GetByPhoneNumber(string phoneNumber);
+        List<Phone> GetByPersonId(int personId);
+        List<Phone> GetAll();
     }
 }

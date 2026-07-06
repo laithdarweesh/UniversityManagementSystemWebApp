@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+﻿using UniversityManagementSystem.Domain.Shared.Guards;
 using UniversityManagementSystem.Shared.Utilities;
 
 namespace UniversityManagementSystem.Domain.Entities
@@ -14,39 +9,55 @@ namespace UniversityManagementSystem.Domain.Entities
         public string PhoneNumber { get; private set; }
         public int PersonId { get; private set; }
         private Phone() { }
-        private Phone(int PhoneId, string PhoneNumber, int PersonId)
+        private Phone(int phoneId, string phoneNumber, int personId)
         {
-            _ValidatePhone(PhoneNumber);
-            _ValidatePerson(PersonId);
+            if (phoneId < 0)
+                throw new ArgumentException("PhoneId cannot be negative", nameof(phoneId));
 
-            this.PhoneId = PhoneId;
-            this.PhoneNumber = PhoneNumber;
-            this.PersonId = PersonId;
+            _ValidatePhone(phoneNumber);
+            Ensure.ValidatePositiveId(personId, nameof(personId));
+
+            this.PhoneId = phoneId;
+            this.PhoneNumber = phoneNumber;
+            this.PersonId = personId;
         }
-        public void SetPhone(string NewPhoneNumber)
+
+        /// <summary>
+        /// Creates a new Phone entity before saving it to database.
+        /// PhoneId is initialized with 0 because the database
+        /// will generate the identity value.
+        /// </summary>
+        public static Phone Create(string phoneNumber, int personId)
         {
-            _ValidatePhone(NewPhoneNumber);
-            this.PhoneNumber = NewPhoneNumber;
+            return new Phone(0, phoneNumber, personId);
         }
-        public static Phone Add(string PhoneNumber, int PersonId)
+
+        /// <summary>
+        /// Loads an existing Phone entity from database data.
+        /// Used by repositories when reconstructing domain objects.
+        /// </summary>
+        public static Phone Load(int phoneId, string phoneNumber, int personId)
         {
-            return new Phone(0,PhoneNumber,PersonId);
+            return new Phone(phoneId, phoneNumber, personId);
         }
-        private void _ValidatePhone(string PhoneNumber)
+
+        //Set Phone
+        public void SetPhoneNumber(string newPhoneNumber)
         {
-            if (string.IsNullOrWhiteSpace(PhoneNumber))
+            _ValidatePhone(newPhoneNumber);
+            this.PhoneNumber = newPhoneNumber;
+        }
+
+        private static void _ValidatePhone(string phoneNumber)
+        {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
                 throw new ArgumentException("Phone number is required");
 
-            if (!clsValidation.ValidateInteger(PhoneNumber))
+            if (!Validation.ValidateInteger(phoneNumber))
                 throw new ArgumentException("Phone must contain digits only");
 
-            if (PhoneNumber.Length < 9 || PhoneNumber.Length > 15)
+            if (phoneNumber.Length < 9 || phoneNumber.Length > 15)
                 throw new ArgumentException("Invalid phone number length");
-        }
-        private void _ValidatePerson(int PersonId)
-        {
-            if (PersonId <= 0)
-                throw new ArgumentException("Invalid person id");
         }
     }
 }

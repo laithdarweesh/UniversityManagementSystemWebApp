@@ -1,43 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace UniversityManagementSystem.Application.Commands.Persons
+﻿namespace UniversityManagementSystem.Application.Commands.Persons
 {
     public class AddPersonCommand
     {
         public string NationalNo { get; }
         public string FirstName { get; }
-        public string SecondName { get; }
-        public string ThirdName { get; }
+        public string? SecondName { get; }
+        public string? ThirdName { get; }
         public string LastName { get; }
         public DateTime DateOfBirth { get; }
         public byte Gendor { get; }
-        public string Email { get; }
+        public string? Email { get; }
         public int NationalityCountryId { get; }
-        public string ImagePath { get; }
-        public DateTime CreatedDate { get; }
-        public DateTime LastStatusDate { get; }
-        public int CreatedByAdminId { get; }
-        public AddPersonCommand(string NationalNo, string FirstName, string SecondName, string ThirdName, string LastName,
-            DateTime DateOfBirth, byte Gendor, string Email, int NationalityCountryId, string ImagePath, DateTime CreatedDate,
-            DateTime LastStatusDate, int CreatedByAdminId)
+        public string? ImagePath { get; }
+        public int CreatedByUserId { get; }
+        public AddPersonCommand(string nationalNo, string firstName, string? secondName, string? thirdName, string lastName,
+                                DateTime dateOfBirth, byte gendor, string? email, int nationalityCountryId, string? imagePath,
+                                int createdByUserId)
         {
-            this.NationalNo = NationalNo;
-            this.FirstName = FirstName;
-            this.SecondName = SecondName;
-            this.ThirdName = ThirdName;
-            this.LastName = LastName;
-            this.DateOfBirth = DateOfBirth;
-            this.Gendor = Gendor;
-            this.Email = Email;
-            this.NationalityCountryId = NationalityCountryId;
-            this.ImagePath = ImagePath;
-            this.CreatedDate = CreatedDate;
-            this.LastStatusDate = LastStatusDate;
-            this.CreatedByAdminId = CreatedByAdminId;
+            this.NationalNo = nationalNo;
+            this.FirstName = firstName;
+            this.SecondName = secondName;
+            this.ThirdName = thirdName;
+            this.LastName = lastName;
+            this.DateOfBirth = dateOfBirth;
+            this.Gendor = gendor;
+            this.Email = email;
+            this.NationalityCountryId = nationalityCountryId;
+            this.ImagePath = imagePath;
+            this.CreatedByUserId = createdByUserId;
         }
     }
 }

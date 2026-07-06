@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using UniversityManagementSystem.API.ApiResponses;
-using UniversityManagementSystem.API.Request_DTO;
-using UniversityManagementSystem.Application.Response_DTO;
-using UniversityManagementSystem.Application.UseCases.Country;
+using UniversityManagementSystem.Application.Response_DTO.Countries;
+using UniversityManagementSystem.Application.UseCases.Countries;
 
 namespace UniversityManagementSystem.API.Controllers
 {
@@ -11,36 +9,36 @@ namespace UniversityManagementSystem.API.Controllers
     [ApiController]
     public class CountriesController : ControllerBase
     {
-        private readonly GetCountryByIdUseCase _GetByIdCase;
-        private readonly GetCountryByNameUseCase _GetByNameCase;
-        private readonly GetAllCountriesUseCase _GetAllCase;
-        public CountriesController(GetCountryByIdUseCase GetByIdCase, GetCountryByNameUseCase GetByNameCase,
-                                   GetAllCountriesUseCase GetAllCase)
+        private readonly GetCountryByIdUseCase _getByIdCase;
+        private readonly GetCountryByNameUseCase _getByNameCase;
+        private readonly GetAllCountriesUseCase _getAllCase;
+        public CountriesController(GetCountryByIdUseCase getByIdCase, GetCountryByNameUseCase getByNameCase,
+                                   GetAllCountriesUseCase getAllCase)
         {
-            _GetByIdCase = GetByIdCase;
-            _GetByNameCase = GetByNameCase;
-            _GetAllCase = GetAllCase;
+            _getByIdCase = getByIdCase;
+            _getByNameCase = getByNameCase;
+            _getAllCase = getAllCase;
         }
-        
+
         [HttpGet("by-id/{countryId:int}")]
-        public IActionResult GetCountryById(int CountryId)
+        public IActionResult GetCountryById([FromRoute] int countryId)
         {
-            var Country = _GetByIdCase.Execute(CountryId);
-            return Ok(ApiResponse<CountryDTO>.Ok(Country));
+            var country = _getByIdCase.Execute(countryId);
+            return Ok(ApiResponse<CountryDTO>.Ok(country));
         }
 
         [HttpGet("by-name/{countryName}")]
-        public IActionResult GetCountryByName(string CountryName)
+        public IActionResult GetCountryByName([FromRoute] string countryName)
         {
-            var Country = _GetByNameCase.Execute(CountryName);
-            return Ok(ApiResponse<CountryDTO>.Ok(Country));
+            var country = _getByNameCase.Execute(countryName);
+            return Ok(ApiResponse<CountryDTO>.Ok(country));
         }
 
         [HttpGet]
         public IActionResult GetAllCountries()
         {
-            var AllCountries = _GetAllCase.Execute();
-            return Ok(ApiResponse<List<CountryDTO>>.Ok(AllCountries));
+            var allCountries = _getAllCase.Execute();
+            return Ok(ApiResponse<List<CountryDTO>>.Ok(allCountries));
         }
     }
 }

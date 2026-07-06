@@ -1,37 +1,33 @@
-﻿using Microsoft.Identity.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace UniversityManagementSystem.Domain.Entities
+﻿namespace UniversityManagementSystem.Domain.Entities
 {
     public class Country
     {
         public int CountryId { get; private set; }
         public string CountryName { get; private set; }
         private Country() { }
-        private Country(int CountryId, string CountryName) 
+        private Country(int countryId, string countryName)
         {
-            _ValidateCountryName(CountryName);
+            if (countryId < 0)
+                throw new ArgumentException("CountryId cannot be negative", nameof(countryId));
 
-            this.CountryId = CountryId;
-            this.CountryName = CountryName;
+            _ValidateCountryName(countryName);
+
+            this.CountryId = countryId;
+            this.CountryName = countryName;
         }
-        public static Country Add(string CountryName)
+
+        /// <summary>
+        /// Loads an existing Country entity from database data.
+        /// Used by repositories when reconstructing domain objects.
+        /// </summary>
+        public static Country Load(int countryId, string countryName)
         {
-            return new Country(0, CountryName);
+            return new Country(countryId, countryName);
         }
-        public void SetCountryName(string NewCountryName)
+        private static void _ValidateCountryName(string countryName)
         {
-            _ValidateCountryName(NewCountryName);
-            this.CountryName = NewCountryName;
-        }
-        private void _ValidateCountryName(string CountryName)
-        {
-            if(string.IsNullOrWhiteSpace(CountryName))
-                throw new ArgumentException("Country name is required");   
+            if (string.IsNullOrWhiteSpace(countryName))
+                throw new ArgumentException("Country name is required");
         }
     }
 }

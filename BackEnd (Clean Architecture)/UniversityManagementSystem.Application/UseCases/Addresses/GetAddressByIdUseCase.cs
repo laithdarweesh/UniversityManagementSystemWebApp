@@ -1,30 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Application.Common.Exceptions;
+﻿using UniversityManagementSystem.Application.Common.Exceptions;
 using UniversityManagementSystem.Application.Interfaces.Addresses;
-using UniversityManagementSystem.Application.Response_DTO;
-using UniversityManagementSystem.Domain.Entities;
+using UniversityManagementSystem.Application.Mappers.Addresses;
+using UniversityManagementSystem.Application.Response_DTO.Addresses;
 
 namespace UniversityManagementSystem.Application.UseCases.Addresses
 {
     public class GetAddressByIdUseCase
     {
-        private readonly IAddressRepository _AddressRepository;
-        public GetAddressByIdUseCase(IAddressRepository AddressRepository)
+        private readonly IAddressRepository _addressRepository;
+        public GetAddressByIdUseCase(IAddressRepository addressRepository)
         {
-            _AddressRepository = AddressRepository;
+            _addressRepository = addressRepository;
         }
-        public AddressDTO Execute(int AddressId)
+        public AddressDTO Execute(int addressId)
         {
-            var Address = _AddressRepository.GetById(AddressId);
+            var address = _addressRepository.GetById(addressId);
 
-            if (Address == null)
-                throw new NotFoundException($"Address with id: {AddressId} not found");
+            if (address == null)
+                throw new NotFoundException($"Address with id: {addressId} not found");
 
-            return new AddressDTO(Address.AddressID, Address.AddressName, Address.PersonId);
+            return AddressMapper.ToDto(address);
         }
     }
 }

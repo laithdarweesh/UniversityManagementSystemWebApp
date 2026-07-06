@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using UniversityManagementSystem.API.ApiResponses;
-using UniversityManagementSystem.API.Request_DTO;
 using UniversityManagementSystem.API.Request_DTO.Persons;
 using UniversityManagementSystem.Application.Commands.Persons;
-using UniversityManagementSystem.Application.Response_DTO;
+using UniversityManagementSystem.Application.Response_DTO.Persons;
 using UniversityManagementSystem.Application.UseCases.Persons;
 
 namespace UniversityManagementSystem.API.Controllers
@@ -14,66 +12,81 @@ namespace UniversityManagementSystem.API.Controllers
     public class PersonsController : ControllerBase
     {
         private readonly AddPersonUseCase _addCase;
-        private readonly UpdatePersonUeCase _updateCase;
+        private readonly UpdatePersonUseCase _updateCase;
+        private readonly UpdatePersonInfoByAdminUseCase _updateByAdminCase;
         private readonly DeletePersonUseCase _deleteCase;
         private readonly GetPersonByIdUseCase _getByIdCase;
         private readonly GetPersonByNationalNoUseCase _getByNationalNoCase;
         private readonly GetAllPeopleUseCase _getAllPeopleCase;
-        public PersonsController(AddPersonUseCase addCase, UpdatePersonUeCase updateCase, DeletePersonUseCase deleteCase,
-            GetPersonByIdUseCase getByIdCase, GetPersonByNationalNoUseCase getByNationalNoCase, 
+        public PersonsController(AddPersonUseCase addCase, UpdatePersonUseCase updateCase,
+            UpdatePersonInfoByAdminUseCase updateByAdminCase, DeletePersonUseCase deleteCase,
+            GetPersonByIdUseCase getByIdCase, GetPersonByNationalNoUseCase getByNationalNoCase,
             GetAllPeopleUseCase getAllPeopleCase)
         {
             _addCase = addCase;
             _updateCase = updateCase;
+            _updateByAdminCase = updateByAdminCase;
             _deleteCase = deleteCase;
             _getByIdCase = getByIdCase;
-            _getByNationalNoCase = getByNationalNoCase; 
+            _getByNationalNoCase = getByNationalNoCase;
             _getAllPeopleCase = getAllPeopleCase;
         }
 
         [HttpPost]
-        public IActionResult Add([FromBody] AddPersonRequest addRequest)
+        public IActionResult Add([FromBody] AddPersonRequest request)
         {
-            var addPersonCommand = new AddPersonCommand(addRequest.NationalNo, addRequest.FirstName,
-                addRequest.SecondName, addRequest.ThirdName, addRequest.LastName, addRequest.DateOfBirth,
-                addRequest.Gendor, addRequest.Email, addRequest.NationalityCountryId, addRequest.ImagePath,
-                addRequest.CreatedDate, addRequest.LastStatusDate, addRequest.CreatedByAdminId);
-            
-            int id = _addCase.Execute(addPersonCommand);
+            var command = new AddPersonCommand(request.NationalNo, request.FirstName, request.SecondName,
+                                               request.ThirdName, request.LastName, request.DateOfBirth,
+                                               request.Gendor, request.Email, request.NationalityCountryId,
+                                               request.ImagePath, request.CreatedByUserId);
 
-            return Ok(ApiResponse<int>.Ok(id, "Person added successfully"));
+            int id = _addCase.Execute(command);
+
+            return CreatedAtAction(
+                nameof(GetPersonById),
+                new { personId = id },
+                ApiResponse<int>.Ok(id, "Person added successfully")
+                );
         }
 
-        [HttpPatch("{personId}")]
-        public IActionResult Update(int personId, [FromBody] UpdatePersonRequest updateRequest)
+        [HttpPatch("profile/{personId}")]
+        public IActionResult UpdateMyProfile([FromRoute] int personId, [FromBody] UpdatePersonRequest request)
         {
-            var updatePersonCommand = new UpdatePersonCommand(updateRequest.Email, updateRequest.ImagePath);
-            _updateCase.Execute(personId, updatePersonCommand);
+            var command = new UpdatePersonCommand(request.Email, request.ImagePath);
+            _updateCase.Execute(personId, command, -1);
 
-            return Ok(ApiResponse<object>.Ok(new
-            { 
-                updateEmail = updatePersonCommand.Email,
-                updateImagePath = updatePersonCommand.ImagePath
-            }, "Person updated successfully"));
+            return NoContent(); // 204
         }
 
-        [HttpDelete("{personId}")]
-        public IActionResult Delete(int personId)
+        [HttpPatch("by-admin/{personId}")]
+        public IActionResult UpdatePersonByAdmin([FromRoute] int personId, [FromBody] UpdatePersonByAdminRequest request)
+        {
+            var command = new UpdatePersonInfoByAdminCommand(request.NationalNo, request.FirstName, request.SecondName,
+                                                             request.ThirdName, request.LastName, request.DateOfBirth,
+                                                             request.Gendor, request.NationalityCountryId);
+
+            _updateByAdminCase.Execute(personId, command, -1);
+
+            return NoContent(); // 204
+        }
+
+        [HttpDelete("{personId:int}")]
+        public IActionResult Delete([FromRoute] int personId)
         {
             _deleteCase.Execute(personId);
             return NoContent(); // 204
         }
 
-        [HttpGet("{personId}")]
-        public IActionResult GetPersonById(int personId)
+        [HttpGet("{personId:int}")]
+        public IActionResult GetPersonById([FromRoute] int personId)
         {
             var person = _getByIdCase.Execute(personId);
 
             return Ok(ApiResponse<PersonDTO>.Ok(person));
         }
 
-        [HttpGet("{nationalNo}")]
-        public IActionResult GetPersonByNationalNo(string nationalNo)
+        [HttpGet("national-number/{nationalNo}")]
+        public IActionResult GetPersonByNationalNo([FromRoute] string nationalNo)
         {
             var person = _getByNationalNoCase.Execute(nationalNo);
 

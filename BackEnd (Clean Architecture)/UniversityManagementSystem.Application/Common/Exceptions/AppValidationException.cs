@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace UniversityManagementSystem.Application.Common.Exceptions
+﻿namespace UniversityManagementSystem.Application.Common.Exceptions
 {
-    public class AppValidationException: Exception
+    public class AppValidationException : Exception
     {
         public Dictionary<string, string[]> Errors { get; }
-        public AppValidationException(Dictionary<string, string[]> Errors)
+        public AppValidationException(Dictionary<string, string[]> errors) : base("Validation failed")
         {
-            this.Errors = Errors;
+            this.Errors = errors;
         }
     }
 }

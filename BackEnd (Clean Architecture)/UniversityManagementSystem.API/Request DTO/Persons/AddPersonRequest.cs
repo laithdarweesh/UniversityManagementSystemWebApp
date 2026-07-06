@@ -1,19 +1,44 @@
-﻿namespace UniversityManagementSystem.API.Request_DTO.Persons
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace UniversityManagementSystem.API.Request_DTO.Persons
 {
     public class AddPersonRequest
     {
-        public string NationalNo { get; set; }
-        public string FirstName { get; set; }
-        public string SecondName { get; set; }
-        public string ThirdName { get; set; }
-        public string LastName { get; set; }
+        [StringLength(20)]
+        public required string NationalNo { get; set; }
+
+        [StringLength(15)]
+        public required string FirstName { get; set; }
+
+        [StringLength(15)]
+        public string? SecondName { get; set; }
+
+        [StringLength(15)]
+        public string? ThirdName { get; set; }
+
+        [StringLength(15)]
+        public required string LastName { get; set; }
+
+        [Required]
         public DateTime DateOfBirth { get; set; }
+
+        [Required]
+        [Range(0, 1)]
         public byte Gendor { get; set; }
-        public string Email { get; set; }
+
+        [EmailAddress]
+        [StringLength(50)]
+        public string? Email { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue)]
         public int NationalityCountryId { get; set; }
-        public string ImagePath { get; set; }
-        public DateTime CreatedDate { get; set; }
-        public DateTime LastStatusDate { get; set; }
-        public int CreatedByAdminId { get; set; }
+
+        [StringLength(250)]
+        public string? ImagePath { get; set; }
+
+        [Required]
+        [Range(1, int.MaxValue)]
+        public int CreatedByUserId { get; set; }
     }
 }

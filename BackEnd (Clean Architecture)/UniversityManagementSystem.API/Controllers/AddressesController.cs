@@ -1,9 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using UniversityManagementSystem.API.ApiResponses;
 using UniversityManagementSystem.API.Request_DTO.Addresses;
 using UniversityManagementSystem.Application.Commands.Addresses;
-using UniversityManagementSystem.API.ApiResponses;
-using UniversityManagementSystem.Application.Response_DTO;
+using UniversityManagementSystem.Application.Response_DTO.Addresses;
 using UniversityManagementSystem.Application.UseCases.Addresses;
 
 namespace UniversityManagementSystem.API.Controllers
@@ -12,59 +11,63 @@ namespace UniversityManagementSystem.API.Controllers
     [ApiController]
     public class AddressesController : ControllerBase
     {
-        private readonly AddAddressUseCase _AddCase;
-        private readonly UpdateAddressUseCase _UpdateCase;
-        private readonly GetAddressByIdUseCase _GetByIdCase;
-        private readonly GetAddressesByPersonIdUseCase _GetForPersonCase;
-        private readonly GetAllAddressesUseCase _AllAddressesCase;
-        public AddressesController(AddAddressUseCase AddCase, UpdateAddressUseCase UpdateCase, 
-            GetAddressByIdUseCase GetByIdCase, GetAddressesByPersonIdUseCase GetForPersonCase,
-            GetAllAddressesUseCase AllAddressesCase)
+        private readonly AddAddressUseCase _addCase;
+        private readonly UpdateAddressUseCase _updateCase;
+        private readonly GetAddressByIdUseCase _getByIdCase;
+        private readonly GetAddressesByPersonIdUseCase _getByPersonIdCase;
+        private readonly GetAllAddressesUseCase _allAddressesCase;
+        public AddressesController(AddAddressUseCase addCase, UpdateAddressUseCase updateCase,
+            GetAddressByIdUseCase getByIdCase, GetAddressesByPersonIdUseCase getByPersonIdCase,
+            GetAllAddressesUseCase allAddressesCase)
         {
-            _AddCase = AddCase;
-            _UpdateCase = UpdateCase;
-            _GetByIdCase = GetByIdCase;
-            _GetForPersonCase = GetForPersonCase;
-            _AllAddressesCase = AllAddressesCase;
+            _addCase = addCase;
+            _updateCase = updateCase;
+            _getByIdCase = getByIdCase;
+            _getByPersonIdCase = getByPersonIdCase;
+            _allAddressesCase = allAddressesCase;
         }
 
         [HttpPost]
-        public IActionResult Add([FromBody] AddAddressRequest AddRequest)
+        public IActionResult Add([FromBody] AddAddressRequest request)
         {
-            var AddAddressCommand = new AddAddressCommand(AddRequest.AddressName, AddRequest.PersonId);
-            int Id = _AddCase.Execute(AddAddressCommand);
+            var command = new AddAddressCommand(request.AddressName, request.PersonId);
+            int id = _addCase.Execute(command);
 
-            return Ok(ApiResponse<int>.Ok(Id, "Address added successfully"));
+            return CreatedAtAction(
+                nameof(GetAddressById),
+                new { addressId = id },
+                ApiResponse<int>.Ok(id, "Address added successfully")
+                );
         }
 
-        [HttpPut("{addressId}")]
-        public IActionResult Update(int AddressId, [FromBody] UpdateAddressRequest UpdateRequest)
+        [HttpPatch("{addressId:int}")]
+        public IActionResult Update([FromRoute] int addressId, [FromBody] UpdateAddressRequest request)
         {
-            var UpdateAddressCommand = new UpdateAddressCommand(UpdateRequest.AddressName);
-            _UpdateCase.Execute(AddressId, UpdateAddressCommand);
+            var command = new UpdateAddressCommand(request.AddressName);
+            _updateCase.Execute(addressId, command, -1);
 
-            return Ok(ApiResponse<string>.Ok(UpdateAddressCommand.AddressName, "Address updated successfully"));
+            return NoContent();
         }
 
-        [HttpGet("{addressId}")]
-        public IActionResult GetAddressById(int AddressId)
+        [HttpGet("{addressId:int}")]
+        public IActionResult GetAddressById([FromRoute] int addressId)
         {
-            var Address = _GetByIdCase.Execute(AddressId);
-            return Ok(ApiResponse<AddressDTO>.Ok(Address));
+            var address = _getByIdCase.Execute(addressId);
+            return Ok(ApiResponse<AddressDTO>.Ok(address));
         }
 
-        [HttpGet("person/{personId}")]
-        public IActionResult GetAddressesForPerson(int PersonId)
+        [HttpGet("person/{personId:int}")]
+        public IActionResult GetAddressesByPersonId([FromRoute] int personId)
         {
-            var AddressesForPerson = _GetForPersonCase.Execute(PersonId);
-            return Ok(ApiResponse<List<AddressDTO>>.Ok(AddressesForPerson));
+            var addresses = _getByPersonIdCase.Execute(personId);
+            return Ok(ApiResponse<List<AddressDTO>>.Ok(addresses));
         }
 
         [HttpGet]
-        public IActionResult GetAllAddresse()
+        public IActionResult GetAllAddresses()
         {
-            var AllAddresses = _AllAddressesCase.Execute();
-            return Ok(ApiResponse<List<AddressDTO>>.Ok(AllAddresses));
+            var allAddresses = _allAddressesCase.Execute();
+            return Ok(ApiResponse<List<AddressDTO>>.Ok(allAddresses));
         }
     }
 }

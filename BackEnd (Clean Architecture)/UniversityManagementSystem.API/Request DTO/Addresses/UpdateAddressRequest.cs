@@ -1,7 +1,10 @@
-﻿namespace UniversityManagementSystem.API.Request_DTO.Addresses
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace UniversityManagementSystem.API.Request_DTO.Addresses
 {
     public class UpdateAddressRequest
     {
-        public string AddressName { get; set; }
+        [StringLength(500)]
+        public string? AddressName { get; set; }
     }
 }

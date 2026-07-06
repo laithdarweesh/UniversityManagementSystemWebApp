@@ -1,117 +1,135 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using System.Data;
-using Microsoft.Data.SqlClient;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UniversityManagementSystem.Application.Interfaces;
 using UniversityManagementSystem.Application.Interfaces.Countries;
-using UniversityManagementSystem.Shared.Utilities;
 using UniversityManagementSystem.Domain.Entities;
-using Microsoft.Extensions.Configuration;
 
 namespace UniversityManagementSystem.Infrastructure.Data.ADO
 {
-    public class CountryRepositoryData:ICountryRepository
+    public class CountryRepositoryData : ICountryRepository
     {
-        private readonly string _ConnectionString;
-        private readonly IAppLog _AppLog;
-        public CountryRepositoryData(IConfiguration Configuration, IAppLog AppLog)
+        private readonly struct CountryOrdinals
         {
-            _ConnectionString = Configuration.GetConnectionString("DefaultConnection");
-            _AppLog = AppLog;
+            public readonly int CountryId;
+            public readonly int CountryName;
+            public CountryOrdinals(SqlDataReader reader)
+            {
+                CountryId = reader.GetOrdinal("CountryId");
+                CountryName = reader.GetOrdinal("CountryName");
+            }
         }
-        public Country GetCountry(int CountryID)
+        private readonly string _connectionString;
+        private readonly IAppLog _appLog;
+        public CountryRepositoryData(IConfiguration configuration, IAppLog appLog)
         {
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                   ?? throw new InvalidOperationException("Missing connection string");
+
+            _appLog = appLog;
+        }
+        private static Country MapCountry(SqlDataReader reader, in CountryOrdinals ordinals)
+        {
+            return Country.Load(
+                reader.GetInt32(ordinals.CountryId),
+                reader.GetString(ordinals.CountryName)
+                );
+        }
+        public Country? GetById(int countryId)
+        {
+            if (countryId <= 0)
+                throw new ArgumentException("CountryId must be greater than zero.", nameof(countryId));
+
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetCountryInfoByID", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Country_GetById", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
-                        command.Parameters.AddWithValue("@CountryID", CountryID);
+                        command.Parameters.Add("@CountryId", SqlDbType.Int).Value = countryId;
                         connection.Open();
 
                         using (SqlDataReader reader = command.ExecuteReader())
                         {
-                            if (reader.Read())
-                            {
-                                return new Country(
-                                    reader.GetInt32(reader.GetOrdinal(("CountryID"))),
-                                    reader.GetString(reader.GetOrdinal("CountryName"))
-                                    );
-                            }
-                            else
+                            if (!reader.Read())
                                 return null;
+
+                            // Cache all ordinals once
+
+                            var ordinals = new CountryOrdinals(reader);
+
+                            return MapCountry(reader, in ordinals);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in GetCountryInfoByID method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in GetCountryInfoById method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
         }
-        public Country GetCountry(string CountryName)
+        public Country? GetByName(string countryName)
         {
+            if (string.IsNullOrWhiteSpace(countryName))
+                throw new ArgumentException("CountryName can't be empty", nameof(countryName));
+
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetCountryInfoByName", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Country_GetByName", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
-                        command.Parameters.AddWithValue("@CountryName", CountryName);
+                        command.Parameters.Add("@CountryName", SqlDbType.NVarChar, 100).Value = countryName;
                         connection.Open();
 
                         using (SqlDataReader reader = command.ExecuteReader())
                         {
-                            if (reader.Read())
-                            {
-                                return new Country(
-                                    reader.GetInt32(reader.GetOrdinal("CountryID")),
-                                    reader.GetString(reader.GetOrdinal("CountryName"))
-                                    );
-                            }
-                            else
+                            if (!reader.Read())
                                 return null;
+
+                            // Cache all ordinals once
+
+                            var ordinals = new CountryOrdinals(reader);
+
+                            return MapCountry(reader, in ordinals);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in GetCountryInfoByName method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in GetCountryInfoByName method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
         }
-        public List<Country> GetAllCountries()
+        public List<Country> GetAll()
         {
-            var Countries = new List<Country>();
+            var countries = new List<Country>();
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetAllCountry", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Country_GetAll", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
                         connection.Open();
 
                         using (SqlDataReader reader = command.ExecuteReader())
                         {
+                            if (!reader.HasRows)
+                                return countries;
+
+                            // Cache all ordinals once
+
+                            var ordinals = new CountryOrdinals(reader);
+
                             while (reader.Read())
                             {
-                                Countries.Add(
-                                    new Country(
-                                        reader.GetInt32(reader.GetOrdinal("CountryID")),
-                                        reader.GetString(reader.GetOrdinal("CountryName"))
-                                        )
-                                    );
+                                countries.Add(MapCountry(reader, in ordinals));
                             }
                         }
                     }
@@ -119,11 +137,11 @@ namespace UniversityManagementSystem.Infrastructure.Data.ADO
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in GetAllCountries method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in GetAllCountries method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
 
-            return Countries;
+            return countries;
         }
     }
 }

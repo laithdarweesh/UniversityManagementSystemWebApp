@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
+﻿using System.Text;
 
 namespace UniversityManagementSystem.Domain.Entities
 {
@@ -61,7 +56,7 @@ namespace UniversityManagementSystem.Domain.Entities
         }
         public void ChangePassword(string oldPassword, string newPassword)
         {
-           _EnsureActive();
+            _EnsureActive();
 
             if (!_VerifyPassword(oldPassword))
                 throw new ArgumentException("Invalid password");

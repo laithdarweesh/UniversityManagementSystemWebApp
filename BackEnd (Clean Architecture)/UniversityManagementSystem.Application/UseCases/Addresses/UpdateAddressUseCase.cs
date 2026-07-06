@@ -1,34 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Application.Commands.Addresses;
+﻿using UniversityManagementSystem.Application.Commands.Addresses;
 using UniversityManagementSystem.Application.Common.Exceptions;
 using UniversityManagementSystem.Application.Interfaces.Addresses;
-using UniversityManagementSystem.Shared.Utilities;
 
 namespace UniversityManagementSystem.Application.UseCases.Addresses
 {
     public class UpdateAddressUseCase
     {
-        private readonly IAddressRepository _AddressRepository;
-        public UpdateAddressUseCase(IAddressRepository AddressRepository)
+        private readonly IAddressRepository _addressRepository;
+        public UpdateAddressUseCase(IAddressRepository addressRepository)
         {
-            _AddressRepository = AddressRepository;
+            _addressRepository = addressRepository;
         }
-        public void Execute(int AddressId, UpdateAddressCommand UpdateAddressCommand)
+        public void Execute(int addressId, UpdateAddressCommand command, int userId)
         {
-            var Address = _AddressRepository.GetById(AddressId);
+            var address = _addressRepository.GetById(addressId);
 
-            if (Address == null)
+            if (address == null)
                 throw new NotFoundException("Address not found");
 
-            Address.SetAddressName(UpdateAddressCommand.AddressName);
-            bool Updated = _AddressRepository.Update(Address);
+            //Update addressName
 
-            if (!Updated)
-                throw new Exception("Failed to update address name");
+            if (command.AddressName != null)
+                address.SetAddressName(command.AddressName);
+
+            _addressRepository.Update(address);
         }
     }
 }

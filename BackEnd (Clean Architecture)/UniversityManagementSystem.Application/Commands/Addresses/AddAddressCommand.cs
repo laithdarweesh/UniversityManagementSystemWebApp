@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace UniversityManagementSystem.Application.Commands.Addresses
+﻿namespace UniversityManagementSystem.Application.Commands.Addresses
 {
     public class AddAddressCommand
     {
         public string AddressName { get; }
         public int PersonId { get; }
-        public AddAddressCommand(string AddressName, int PersonId)
+        public AddAddressCommand(string addressName, int personId)
         {
-            this.AddressName = AddressName;
-            this.PersonId = PersonId;
+            this.AddressName = addressName;
+            this.PersonId = personId;
         }
     }
 }

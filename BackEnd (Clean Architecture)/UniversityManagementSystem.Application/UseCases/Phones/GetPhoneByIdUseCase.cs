@@ -1,29 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Application.Common.Exceptions;
+﻿using UniversityManagementSystem.Application.Common.Exceptions;
 using UniversityManagementSystem.Application.Interfaces.Phones;
-using UniversityManagementSystem.Application.Response_DTO;
+using UniversityManagementSystem.Application.Mappers.Phones;
+using UniversityManagementSystem.Application.Response_DTO.Phones;
 
-namespace UniversityManagementSystem.Application.UseCases.Phone
+namespace UniversityManagementSystem.Application.UseCases.Phones
 {
     public class GetPhoneByIdUseCase
     {
-        private readonly IPhoneRepository _PhoneRepository;
-        public GetPhoneByIdUseCase(IPhoneRepository PhoneRepository)
+        private readonly IPhoneRepository _phoneRepository;
+        public GetPhoneByIdUseCase(IPhoneRepository phoneRepository)
         {
-            _PhoneRepository = PhoneRepository;
+            _phoneRepository = phoneRepository;
         }
-        public PhoneDTO Execute(int PhoneId)
+        public PhoneDTO Execute(int phoneId)
         {
-            var Phone = _PhoneRepository.Get(PhoneId);
+            var phone = _phoneRepository.GetById(phoneId);
 
-            if (Phone == null)
-                throw new NotFoundException($"Phone with Id: {PhoneId} not found");
+            if (phone == null)
+                throw new NotFoundException($"Phone with Id: {phoneId} not found");
 
-            return new PhoneDTO(Phone.PhoneId, Phone.PhoneNumber, Phone.PersonId);
+            return PhoneMapper.ToDto(phone);
         }
     }
 }

@@ -1,186 +1,227 @@
-﻿using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using System.Data;
-using Microsoft.Data.SqlClient;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using UniversityManagementSystem.Application.Common.Exceptions;
 using UniversityManagementSystem.Application.Interfaces;
 using UniversityManagementSystem.Application.Interfaces.Phones;
 using UniversityManagementSystem.Domain.Entities;
-using UniversityManagementSystem.Shared.Utilities;
 
 namespace UniversityManagementSystem.Infrastructure.Data.ADO
 {
-    public class PhoneRepositoryData: IPhoneRepository
+    public class PhoneRepositoryData : IPhoneRepository
     {
-        private readonly string _ConnectionString;
-        private readonly IAppLog _AppLog;
-        public PhoneRepositoryData(IConfiguration Configuration, IAppLog AppLog)
+        private readonly struct PhoneOrdinals
         {
-            _ConnectionString = Configuration.GetConnectionString("DefaultConnection");
-            _AppLog = AppLog;
+            public readonly int PhoneId;
+            public readonly int PhoneNumber;
+            public readonly int PersonId;
+            public PhoneOrdinals(SqlDataReader reader)
+            {
+                PhoneId = reader.GetOrdinal("PhoneId");
+                PhoneNumber = reader.GetOrdinal("PhoneNumber");
+                PersonId = reader.GetOrdinal("PersonId");
+            }
         }
-        public int Add(Phone Phone)
+
+        private readonly string _connectionString;
+        private readonly IAppLog _appLog;
+        public PhoneRepositoryData(IConfiguration configuration, IAppLog appLog)
         {
-            int PhoneID = -1;
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                   ?? throw new InvalidOperationException("Missing connection string");
+
+            _appLog = appLog;
+        }
+        private static Phone MapPhone(SqlDataReader reader, in PhoneOrdinals ordinals)
+        {
+            return Phone.Load(
+                reader.GetInt32(ordinals.PhoneId),
+                reader.GetString(ordinals.PhoneNumber),
+                reader.GetInt32(ordinals.PersonId)
+                );
+        }
+        public int Add(Phone phone)
+        {
+            if (phone == null)
+                throw new ArgumentNullException(nameof(phone));
+
+            int phoneId = -1;
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_AddNewPhoneNumber", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Phone_Add", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
 
-                        command.Parameters.AddWithValue("@PhoneNumber", Phone.PhoneNumber);
-                        command.Parameters.AddWithValue("@PersonID", Phone.PersonId);
+                        command.Parameters.Add("@PhoneNumber", SqlDbType.VarChar, 20).Value = phone.PhoneNumber;
+                        command.Parameters.Add("@PersonId", SqlDbType.Int).Value = phone.PersonId;
 
                         connection.Open();
                         object result = command.ExecuteScalar();
 
-                        if (result != null && int.TryParse(result.ToString(), out int InsertedId))
+                        if (result != null && result != DBNull.Value)
                         {
-                            PhoneID = InsertedId;
+                            phoneId = Convert.ToInt32(result);
+                        }
+                        else
+                        {
+                            throw new OperationFailedException("Stored procedure returned a null or invalid result.");
                         }
                     }
                 }
+
+                if (phoneId > 0)
+                    _appLog.LogInfo($"New phone added to system with Id: {phoneId}");
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred while adding a new Phone Number. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred while adding a new Phone Number. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
 
-            return PhoneID;
+            return phoneId;
         }
-        public bool Update(Phone Phone)
+        public void Update(Phone phone)
         {
-            int RowsAffected = 0;
+            int result = 0;
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_UpdatePhoneNumber", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Phone_Update", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
 
-                        command.Parameters.AddWithValue("@PhoneID", Phone.PhoneId);
-                        command.Parameters.AddWithValue("@PhoneNumber", Phone.PhoneNumber);
+                        command.Parameters.Add("@PhoneId", SqlDbType.Int).Value = phone.PhoneId;
+                        command.Parameters.Add("@PhoneNumber", SqlDbType.VarChar, 20).Value = phone.PhoneNumber;
+
+                        command.Parameters.Add("@Result", SqlDbType.Int).Direction = ParameterDirection.Output;
 
                         connection.Open();
-                        RowsAffected = command.ExecuteNonQuery();
+                        command.ExecuteNonQuery();
+
+                        object returnedValue = command.Parameters["@Result"].Value;
+
+                        // The stored procedure should always assign @Result. If not, treat it as an unexpected failure.
+
+                        if (returnedValue == DBNull.Value)
+                            throw new OperationFailedException("Output parameter @Result was not assigned.");
+
+                        result = (int)returnedValue;
                     }
                 }
 
-                if (RowsAffected > 0)
+                if (result > 0)
                 {
-                    _AppLog.LogInfo($"The record for Phone ID: {Phone.PhoneId} was updated successfully.");
+                    _appLog.LogInfo($"The record for Phone Id: {phone.PhoneId} was updated successfully.");
                 }
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in UpdatePhoneNumber method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in UpdatePhoneNumber method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
-
-            return (RowsAffected > 0);
         }
-        public Phone Get(int PhoneId)
+        public Phone? GetById(int phoneId)
         {
+            if (phoneId <= 0)
+                throw new ArgumentException("phoneId must be greater than zero.", nameof(phoneId));
+
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetPhoneInfoByID", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Phone_GetById", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
-                        command.Parameters.AddWithValue("@PhoneID", PhoneId);
+                        command.Parameters.Add("@PhoneId", SqlDbType.Int).Value = phoneId;
+
                         connection.Open();
 
                         using (SqlDataReader reader = command.ExecuteReader())
                         {
-                            if (reader.Read())
-                            {
-                                return new Phone(
-                                    reader.GetInt32(reader.GetOrdinal("PhoneID")),
-                                    reader.GetString(reader.GetOrdinal("PhoneNumber")),
-                                    reader.GetInt32(reader.GetOrdinal("PersonID"))
-                                    );
-                            }
-                            else
+                            if (!reader.Read())
                                 return null;
+
+                            // Cache all ordinals once
+
+                            var ordinals = new PhoneOrdinals(reader);
+
+                            return MapPhone(reader, in ordinals);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in Get method by Phone ID. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in Get method by Phone ID. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
         }
-        public Phone Get(string PhoneNumber)
+        public Phone? GetByPhoneNumber(string phoneNumber)
         {
+            if (string.IsNullOrWhiteSpace(phoneNumber))
+                throw new ArgumentException("phoneNumber can't be empty", nameof(phoneNumber));
+
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetPhoneInfoByPhoneNumber", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Phone_GetByPhoneNumber", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
-                        command.Parameters.AddWithValue("@PhoneNumber", PhoneNumber);
+                        command.Parameters.Add("@PhoneNumber", SqlDbType.VarChar, 20).Value = phoneNumber;
+
                         connection.Open();
 
                         using (SqlDataReader reader = command.ExecuteReader())
                         {
-                            if (reader.Read())
-                            {
-                                return new Phone(
-                                    reader.GetInt32(reader.GetOrdinal("PhoneID")),
-                                    reader.GetString(reader.GetOrdinal("PhoneNumber")),
-                                    reader.GetInt32(reader.GetOrdinal("PersonID"))
-                                    );
-                            }
-                            else
+                            if (!reader.Read())
                                 return null;
+
+                            // Cache all ordinals once
+
+                            var ordinals = new PhoneOrdinals(reader);
+
+                            return MapPhone(reader, in ordinals);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in Get method by Phone Number. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in Get method by Phone Number. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
         }
-        public List<Phone> GetAllPhones()
+        public List<Phone> GetAll()
         {
-            var Phones = new List<Phone>();
+            var phones = new List<Phone>();
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetAllPhones", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Phone_GetAll", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
                         connection.Open();
 
                         using (SqlDataReader reader = command.ExecuteReader())
                         {
+                            if (!reader.HasRows)
+                                return phones;
+
+                            // Cache all ordinals once
+
+                            var ordinals = new PhoneOrdinals(reader);
+
                             while (reader.Read())
                             {
-                                Phones.Add(
-                                    new Phone(
-                                        reader.GetInt32(reader.GetOrdinal("PhoneID")),
-                                        reader.GetString(reader.GetOrdinal("PhoneNumber")),
-                                        reader.GetInt32(reader.GetOrdinal("PersonID"))
-                                        )
-                                    );
+                                phones.Add(MapPhone(reader, in ordinals));
                             }
                         }
                     }
@@ -188,36 +229,42 @@ namespace UniversityManagementSystem.Infrastructure.Data.ADO
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in GetAllPhones method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in GetAllPhones method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
 
-            return Phones;
+            return phones;
         }
-        public List<Phone> GetAllPhonesByPerson(int PersonId)
+        public List<Phone> GetByPersonId(int personId)
         {
-            var PhonesByPerson = new List<Phone>();
+            if (personId <= 0)
+                throw new ArgumentException("PersonId must be greater than zero.", nameof(personId));
+
+            var phonesByPerson = new List<Phone>();
 
             try
             {
-                using (SqlConnection connection = new SqlConnection(_ConnectionString))
+                using (SqlConnection connection = new SqlConnection(_connectionString))
                 {
-                    using (SqlCommand command = new SqlCommand("SP_GetAllPhonesByPerson", connection))
+                    using (SqlCommand command = new SqlCommand("SP_Phone_GetByPersonId", connection))
                     {
                         command.CommandType = CommandType.StoredProcedure;
-                        command.Parameters.AddWithValue("@PersonID", PersonId);
+                        command.Parameters.Add("@PersonId", SqlDbType.Int).Value = personId;
+
                         connection.Open();
 
                         using (SqlDataReader reader = command.ExecuteReader())
                         {
+                            if (!reader.HasRows)
+                                return phonesByPerson;
+
+                            // Cache all ordinals once
+
+                            var ordinals = new PhoneOrdinals(reader);
+
                             while (reader.Read())
                             {
-                                PhonesByPerson.Add(
-                                        new Phone(
-                                            reader.GetInt32(reader.GetOrdinal("PhoneID")),
-                                            reader.GetString(reader.GetOrdinal("PhoneNumber")),
-                                            reader.GetInt32(reader.GetOrdinal("PersonID"))
-                                    ));
+                                phonesByPerson.Add(MapPhone(reader, in ordinals));
                             }
                         }
                     }
@@ -225,11 +272,11 @@ namespace UniversityManagementSystem.Infrastructure.Data.ADO
             }
             catch (Exception ex)
             {
-                _AppLog.LogError($"Error occurred in GetAllPhonesByPerson method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
+                _appLog.LogError($"Error occurred in GetAllPhonesByPerson method. Details: {ex.Message} | StackTrace: {ex.StackTrace}");
                 throw;
             }
 
-            return PhonesByPerson;
+            return phonesByPerson;
         }
     }
 }

@@ -1,10 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using UniversityManagementSystem.API.ApiResponses;
-using UniversityManagementSystem.API.Request_DTO;
+using UniversityManagementSystem.API.Request_DTO.Phones;
 using UniversityManagementSystem.Application.Commands.Phones;
-using UniversityManagementSystem.Application.Response_DTO;
-using UniversityManagementSystem.Application.UseCases.Phone;
+using UniversityManagementSystem.Application.Response_DTO.Phones;
+using UniversityManagementSystem.Application.UseCases.Phones;
 
 namespace UniversityManagementSystem.API.Controllers
 {
@@ -12,62 +11,72 @@ namespace UniversityManagementSystem.API.Controllers
     [ApiController]
     public class PhonesController : ControllerBase
     {
-        private readonly AddPhoneNumberUseCase _AddCase;
-        private readonly UpdatePhoneNumberUseCase _UpdateCase;
-        private readonly GetPhoneByIdUseCase _GetByIdCase;
-        private readonly GetPhoneByPhoneNumberUseCase _GetByPhoneNumberCase;
-        private readonly GetAllPhonesByPersonUseCase _GetAllByPersonCase;
-        private readonly GetAllPhonesUseCase _GetAllCase;
-        public PhonesController(AddPhoneNumberUseCase AddCase, UpdatePhoneNumberUseCase UpdateCase, 
-            GetPhoneByIdUseCase GetByIdCase, GetPhoneByPhoneNumberUseCase GetByPhoneNumberCase,
-            GetAllPhonesByPersonUseCase GetAllByPersonCase, GetAllPhonesUseCase GetAllCase)
+        private readonly AddPhoneUseCase _addCase;
+        private readonly UpdatePhoneUseCase _updateCase;
+        private readonly GetPhoneByIdUseCase _getByIdCase;
+        private readonly GetPhoneByPhoneNumberUseCase _getByPhoneNumberCase;
+        private readonly GetPhonesByPersonIdUseCase _getByPersonIdCase;
+        private readonly GetAllPhonesUseCase _getAllCase;
+        public PhonesController(AddPhoneUseCase addCase, UpdatePhoneUseCase updateCase,
+            GetPhoneByIdUseCase getByIdCase, GetPhoneByPhoneNumberUseCase getByPhoneNumberCase,
+            GetPhonesByPersonIdUseCase getByPersonIdCase, GetAllPhonesUseCase getAllCase)
         {
-            _AddCase = AddCase;
-            _UpdateCase = UpdateCase;
-            _GetByIdCase = GetByIdCase;
-            _GetByPhoneNumberCase = GetByPhoneNumberCase;
-            _GetAllByPersonCase = GetAllByPersonCase;
-            _GetAllCase = GetAllCase;
+            _addCase = addCase;
+            _updateCase = updateCase;
+            _getByIdCase = getByIdCase;
+            _getByPhoneNumberCase = getByPhoneNumberCase;
+            _getByPersonIdCase = getByPersonIdCase;
+            _getAllCase = getAllCase;
         }
+
         [HttpPost]
-        public IActionResult Add([FromBody] PhoneRequest PhoneRequest)
+        public IActionResult Add([FromBody] AddPhoneRequest request)
         {
-            var PhoneCommand = new AddPhoneCommand(PhoneRequest.PhoneNumber, PhoneRequest.PersonId);
-            int Id = _AddCase.Execute(PhoneCommand);
+            var command = new AddPhoneCommand(request.PhoneNumber, request.PersonId);
+            int id = _addCase.Execute(command);
 
-            return Ok(ApiResponse<int>.Ok(Id, "Phone added successfully"));
+            return CreatedAtAction(
+                nameof(GetPhoneById),
+                new { phoneId = id },
+                ApiResponse<int>.Ok(id, "Phone added successfully")
+                );
         }
-        [HttpPut("{phoneId}")]
-        public IActionResult Update(int PhoneId, [FromBody] PhoneRequest PhoneRequest)
+
+        [HttpPatch("{phoneId:int}")]
+        public IActionResult Update([FromRoute] int phoneId, [FromBody] UpdatePhoneRequest request)
         {
-            var PhoneCommand = new UpdatePhoneCommand(PhoneRequest.PhoneNumber);
-            _UpdateCase.Execute(PhoneId, PhoneCommand);
+            var command = new UpdatePhoneCommand(request.PhoneNumber);
+            _updateCase.Execute(phoneId, command);
 
-            return Ok(ApiResponse<string>.Ok(PhoneCommand.PhoneNumber, "Phone Number updated successfully"));
+            return NoContent();
         }
+
         [HttpGet("by-id/{phoneId:int}")]
-        public IActionResult GetPhoneById(int PhoneId)
+        public IActionResult GetPhoneById([FromRoute] int phoneId)
         {
-            var Phone = _GetByIdCase.Execute(PhoneId);
-            return Ok(ApiResponse<PhoneDTO>.Ok(Phone));
+            var phone = _getByIdCase.Execute(phoneId);
+            return Ok(ApiResponse<PhoneDTO>.Ok(phone));
         }
+
         [HttpGet("by-number/{phoneNumber}")]
-        public IActionResult GetPhoneByPhoneNumber(string PhoneNumber)
+        public IActionResult GetPhoneByPhoneNumber([FromRoute] string phoneNumber)
         {
-            var Phone = _GetByPhoneNumberCase.Execute(PhoneNumber);
-            return Ok(ApiResponse<PhoneDTO>.Ok(Phone));
+            var phone = _getByPhoneNumberCase.Execute(phoneNumber);
+            return Ok(ApiResponse<PhoneDTO>.Ok(phone));
         }
-        [HttpGet("person/{personId}")]
-        public IActionResult GetPhonesForPerson(int PersonId)
+
+        [HttpGet("by-person/{personId:int}")]
+        public IActionResult GetPhonesByPersonId([FromRoute] int personId)
         {
-            var Phones = _GetAllByPersonCase.Execute(PersonId);
-            return Ok(ApiResponse<List<PhoneDTO>>.Ok(Phones));
+            var phones = _getByPersonIdCase.Execute(personId);
+            return Ok(ApiResponse<List<PhoneDTO>>.Ok(phones));
         }
+
         [HttpGet]
-        public IActionResult GetALlPhones()
+        public IActionResult GetAllPhones()
         {
-            var AllPhones = _GetAllCase.Execute();
-            return Ok(ApiResponse<List<PhoneDTO>>.Ok(AllPhones));
+            var allPhones = _getAllCase.Execute();
+            return Ok(ApiResponse<List<PhoneDTO>>.Ok(allPhones));
         }
     }
 }

@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace UniversityManagementSystem.Domain.Entities
+﻿namespace UniversityManagementSystem.Domain.Entities
 {
     public class Doctor
     {
@@ -21,7 +15,7 @@ namespace UniversityManagementSystem.Domain.Entities
         public bool IsActive { get; private set; }
         public string PasswordHash { get; private set; }
         private Doctor() { }
-        private Doctor(int doctorId, int personId, int collegeId, int departmentId, byte doctorStatus, decimal salary, 
+        private Doctor(int doctorId, int personId, int collegeId, int departmentId, byte doctorStatus, decimal salary,
                        int createdByAdminId, byte permissionLevel, bool isActive, string passwordHash)
         {
             this.DoctorId = doctorId;
@@ -32,7 +26,7 @@ namespace UniversityManagementSystem.Domain.Entities
             this.Salary = salary;
             this.CreatedByAdminId = createdByAdminId;
             this.PermissionLevel = permissionLevel;
-            this.IsActive = isActive;   
+            this.IsActive = isActive;
             this.PasswordHash = passwordHash;
         }
     }

@@ -1,79 +1,79 @@
 ﻿using System.Net;
 using System.Text.Json;
+using UniversityManagementSystem.API.ApiResponses;
 using UniversityManagementSystem.Application.Common.Exceptions;
 
 namespace UniversityManagementSystem.API.Middlewares
 {
     public class ExceptionHandlingMiddleware
     {
-        private readonly RequestDelegate _Next;
-        public ExceptionHandlingMiddleware(RequestDelegate Next)
+        private readonly RequestDelegate _next;
+        public ExceptionHandlingMiddleware(RequestDelegate next)
         {
-            _Next = Next;
+            _next = next;
         }
-        public async Task InvokeAsync(HttpContext Context)
+        public async Task InvokeAsync(HttpContext context)
         {
             try
             {
-                await _Next(Context);
+                await _next(context);
             }
             catch (AppValidationException ex)
             {
-                Context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                Context.Response.ContentType = "application/json";
+                await WriteResponseAsync(context, HttpStatusCode.BadRequest, ex.Message, ex.Errors);
 
-                var Response = new
-                {
-                    Success = false,
-                    Message = "Validation faild",
-                    Errors = ex.Errors
-                };
+                //context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                //context.Response.ContentType = "application/json";
 
-                var Json = JsonSerializer.Serialize(Response);
-                await Context.Response.WriteAsync(Json);
+                //var Response = new
+                //{
+                //    Success = false,
+                //    Message = "Validation failed",
+                //    Errors = ex.Errors
+                //};
+
+                //var response = ApiResponse<object>.Fail(ex.Message, ex.Errors);
+
+                //var json = JsonSerializer.Serialize(response);
+                //await context.Response.WriteAsync(json);
             }
             catch (NotFoundException ex)
             {
-                Context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-                Context.Response.ContentType = "application/json";
-
-                var Response = new
-                {
-                    Success = false,
-                    Message = ex.Message
-                };
-
-                var Json = JsonSerializer.Serialize(Response);
-                await Context.Response.WriteAsync(Json);
+                await WriteResponseAsync(context, HttpStatusCode.NotFound, ex.Message);
             }
-            catch(ArgumentException ex)
+            catch (OperationFailedException ex)
             {
-                Context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                Context.Response.ContentType = "application/json";
-
-                var Response = new
-                {
-                    Success = false,
-                    Message = ex.Message
-                };
-
-                var Json = JsonSerializer.Serialize(Response);
-                await Context.Response.WriteAsync(Json);
+                await WriteResponseAsync(context, HttpStatusCode.BadRequest, ex.Message);
             }
-            catch (Exception ex) 
+            catch (DuplicateRecordException ex)
             {
-                Context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                Context.Response.ContentType = "application/json";
-
-                var Response = new
-                {
-                    Success = false,
-                    Message = "An unexpected error occurred"
-                };
-
-                var Json = JsonSerializer.Serialize(Response);
-                await Context.Response.WriteAsync(Json);
+                await WriteResponseAsync(context, HttpStatusCode.Conflict, ex.Message);
             }
+            catch (ArgumentException ex)
+            {
+                await WriteResponseAsync(context, HttpStatusCode.BadRequest, ex.Message);
+            }
+            catch (Exception)
+            {
+                await WriteResponseAsync(context, HttpStatusCode.InternalServerError, "An unexpected error occurred");
+            }
+        }
+        private static async Task WriteResponseAsync(HttpContext context, HttpStatusCode statusCode,
+                                                     string message, Dictionary<string, string[]>? errors = null)
+        {
+            context.Response.StatusCode = (int)statusCode;
+            context.Response.ContentType = "application/json";
+
+            //var response = new
+            //{
+            //    Success = false,
+            //    Message = message
+            //};
+
+            var response = ApiResponse<object>.Fail(message, errors);
+            var json = JsonSerializer.Serialize(response);
+
+            await context.Response.WriteAsync(json);
         }
     }
 }

@@ -1,19 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace UniversityManagementSystem.Application.Commands.Phones
+﻿namespace UniversityManagementSystem.Application.Commands.Phones
 {
     public class AddPhoneCommand
     {
         public string PhoneNumber { get; }
         public int PersonId { get; }
-        public AddPhoneCommand(string PhoneNumber, int PersonId)
+        public AddPhoneCommand(string phoneNumber, int personId)
         {
-            this.PhoneNumber = PhoneNumber;
-            this.PersonId = PersonId;
+            this.PhoneNumber = phoneNumber;
+            this.PersonId = personId;
         }
     }
 }

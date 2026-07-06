@@ -1,27 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UniversityManagementSystem.Application.Common.Exceptions;
-using UniversityManagementSystem.Application.Interfaces.Addresses;
-using UniversityManagementSystem.Application.Response_DTO;
-using UniversityManagementSystem.Domain.Entities;
+﻿using UniversityManagementSystem.Application.Interfaces.Addresses;
+using UniversityManagementSystem.Application.Mappers.Addresses;
+using UniversityManagementSystem.Application.Response_DTO.Addresses;
 
 namespace UniversityManagementSystem.Application.UseCases.Addresses
 {
     public class GetAddressesByPersonIdUseCase
     {
-        private readonly IAddressRepository _AddressRepository;
-        public GetAddressesByPersonIdUseCase(IAddressRepository AddressRepository)
+        private readonly IAddressRepository _addressRepository;
+        public GetAddressesByPersonIdUseCase(IAddressRepository addressRepository)
         {
-            _AddressRepository = AddressRepository; 
+            _addressRepository = addressRepository;
         }
-        public List<AddressDTO> Execute(int PersonId)
+        public List<AddressDTO> Execute(int personId)
         {
-            var Addresses = _AddressRepository.GetAddressesByPersonID(PersonId);
+            var addresses = _addressRepository.GetByPersonId(personId);
 
-            return Addresses.Select(a => new AddressDTO(a.AddressID, a.AddressName, a.PersonId)).ToList();
+            return addresses.Select(AddressMapper.ToDto).ToList();
         }
     }
 }
