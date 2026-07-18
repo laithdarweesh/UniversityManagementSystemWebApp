@@ -30,9 +30,10 @@ namespace UniversityManagementSystem.Domain.Entities
                     LastName
                 }.Where(x => !string.IsNullOrWhiteSpace(x)));
         private Person() { }
-        private Person(int personId, string nationalNo, string firstName, string? secondName, string? thirdName, string lastName,
-            DateTime dateOfBirth, byte gendor, string? email, int nationalityCountryId, string? imagePath, DateTime createdAt,
-             DateTime? updatedAt, int createdByUserId, int? updatedByUserId, bool isActive)
+        private Person(int personId, string nationalNo, string firstName, string? secondName, string? thirdName,
+                       string lastName, DateTime dateOfBirth, byte gendor, string? email, int nationalityCountryId,
+                       string? imagePath, DateTime createdAt, DateTime? updatedAt, int createdByUserId,
+                       int? updatedByUserId, bool isActive)
         {
             _ValidateNationalNumber(nationalNo);
             _ValidateName(firstName, secondName, thirdName, lastName);

@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using UniversityManagementSystem.Domain.Shared.Guards;
 
 namespace UniversityManagementSystem.Domain.Entities
 {
@@ -6,157 +6,164 @@ namespace UniversityManagementSystem.Domain.Entities
     {
         public int AdminId { get; private set; }
         public int PersonId { get; private set; }
-        public string AdminName { get; private set; }
-        public string PasswordHash { get; private set; }
-        public byte PermissionLevel { get; private set; }
-        public bool IsActive { get; private set; }
-        public DateTime CreatedDate { get; private set; }
-        public int CreatedByAdminId { get; private set; }
-        public DateTime LastStatusDate { get; private set; }
+        public DateTime CreatedAt { get; private set; }
+        public int CreatedByUserId { get; private set; }
+        public byte Status { get; private set; }
+        public DateTime? UpdatedAt { get; private set; }
+        public int? UpdatedByUserId { get; private set; }
         private Admin() { }
-        private Admin(int adminId, int personId, string adminName, string passwordHash,
-                      byte permissionLevel, int createdByAdminId)
+        private Admin(int adminId, int personId, DateTime createdAt, int createdByUserId,
+                      byte status, DateTime? updatedAt, int? updatedByUserId)
         {
-            _ValidateAdminName(adminName);
-            _ValidatePermission(permissionLevel);
-            _ValidatePasswordHash(passwordHash);
-            _ValidatePerson(personId);
-            _ValidateCreatedBy(createdByAdminId);
+            //adminId only allowed to equal "0" when creating new Admin
+
+            if (adminId < 0)
+                throw new ArgumentException("AdminId cannot be negative", nameof(adminId));
+
+            //Ensure positive id for personId, createdByUserId and updatedByUserId 
+
+            Ensure.ValidatePositiveId(personId, nameof(personId));
+            Ensure.ValidatePositiveId(createdByUserId, nameof(createdByUserId));
+
+            if (updatedByUserId.HasValue)
+                Ensure.ValidatePositiveId(updatedByUserId.Value, nameof(updatedByUserId));
+
+            //Validate status range
+
+            _ValidateStatus(status);
 
             this.AdminId = adminId;
             this.PersonId = personId;
-            this.AdminName = adminName;
-            this.PasswordHash = passwordHash;
-            this.PermissionLevel = permissionLevel;
-            this.CreatedByAdminId = createdByAdminId;
-
-            this.IsActive = true;
-            this.CreatedDate = DateTime.UtcNow;
-            this.LastStatusDate = DateTime.UtcNow;
+            this.CreatedAt = createdAt;
+            this.CreatedByUserId = createdByUserId;
+            this.Status = status;
+            this.UpdatedAt = updatedAt;
+            this.UpdatedByUserId = updatedByUserId;
         }
-        public static (Admin admin, string password) Add(int personId, string adminName,
-                                                         byte permissionLevel, int createdByAdminId)
+
+        /// <summary>
+        /// Creates a new Admin entity before saving it to database.
+        /// AdminId is initialized with 0 because the database
+        /// will generate the identity value.
+        /// </summary>
+        public static Admin Create(int personId, int createdByUserId, byte status)
         {
-            string randomPassword = _GenerateRandomPassword();
-            _ValidatePassword(randomPassword);
-
-            string hashPassword = _HashPassword(randomPassword);
-            _ValidatePasswordHash(hashPassword);
-
-            var admin = new Admin(0, personId, adminName, hashPassword, permissionLevel, createdByAdminId);
-            return (admin, randomPassword);
+            return new Admin(0, personId, DateTime.UtcNow, createdByUserId, status, null, null);
         }
-        public void ChangeAdminName(string newAdminName)
+
+        /// <summary>
+        /// Loads an existing Admin entity from database data.
+        /// Used by repositories when reconstructing domain objects.
+        /// </summary>
+        public static Admin Load(int adminId, int personId, DateTime createdAt, int createdByUserId,
+                                 byte status, DateTime? updatedAt, int? UpdatedByUserId)
         {
-            _EnsureActive();
-            _ValidateAdminName(newAdminName);
-
-            this.AdminName = newAdminName;
-            _UpdateLastModifiedDate();
+            return new Admin(adminId, personId, createdAt, createdByUserId, status, updatedAt, UpdatedByUserId);
         }
-        public void ChangePassword(string oldPassword, string newPassword)
+        public void MarkAsUpdated(int userId)
         {
-            _EnsureActive();
+            Ensure.ValidatePositiveId(userId, nameof(userId));
 
-            if (!_VerifyPassword(oldPassword))
-                throw new ArgumentException("Invalid password");
-
-            _ValidatePassword(newPassword);
-
-            string passwordHash = _HashPassword(newPassword);
-
-            _ValidatePasswordHash(passwordHash);
-
-            this.PasswordHash = passwordHash;
-            _UpdateLastModifiedDate(); // must be registered by Admin Id, not any Admin
+            this.UpdatedAt = DateTime.UtcNow;
+            this.UpdatedByUserId = userId;
         }
-        public void ChangePermissionLevel(byte newPermissionLevel)
+
+        public void SetStatus(byte newStatus)
         {
-            _EnsureActive();
-            _ValidatePermission(newPermissionLevel);
-
-            this.PermissionLevel = newPermissionLevel;
-            _UpdateLastModifiedDate();
+            _ValidateStatus(newStatus);
+            this.Status = newStatus;
         }
-        public void DeactivateAccount()
+
+        //Validate status
+        private void _ValidateStatus(byte status)
         {
-            if (!this.IsActive)
-                return;
-
-            this.IsActive = false;
-            _UpdateLastModifiedDate();
-        }
-        public void ActivateAccount()
-        {
-            if (this.IsActive)
-                return;
-
-            this.IsActive = true;
-            _UpdateLastModifiedDate();
+            if (status < 1 || status > 5)
+                throw new ArgumentOutOfRangeException(nameof(status), "Status must be between 1 and 5");
         }
 
+        //public void ChangeAdminName(string newAdminName)
+        //{
+        //    _EnsureActive();
+        //    _ValidateAdminName(newAdminName);
 
-        private void _EnsureActive()
-        {
-            if (!this.IsActive)
-                throw new ArgumentException("Admin is not active");
-        }
-        private void _UpdateLastModifiedDate()
-        {
-            this.LastStatusDate = DateTime.UtcNow;
-        }
+        //    this.AdminName = newAdminName;
+        //    _UpdateLastModifiedDate();
+        //}
+        //public void ChangePassword(string oldPassword, string newPassword)
+        //{
+        //    _EnsureActive();
+
+        //    if (!_VerifyPassword(oldPassword))
+        //        throw new ArgumentException("Invalid password");
+
+        //    _ValidatePassword(newPassword);
+
+        //    string passwordHash = _HashPassword(newPassword);
+
+        //    _ValidatePasswordHash(passwordHash);
+
+        //    this.PasswordHash = passwordHash;
+        //    _UpdateLastModifiedDate(); // must be registered by Admin Id, not any Admin
+        //}
+        //public void DeactivateAccount()
+        //{
+        //    if (!this.IsActive)
+        //        return;
+
+        //    this.IsActive = false;
+        //    _UpdateLastModifiedDate();
+        //}
+        //public void ActivateAccount()
+        //{
+        //    if (this.IsActive)
+        //        return;
+
+        //    this.IsActive = true;
+        //    _UpdateLastModifiedDate();
+        //}
 
         //Methods related to password and security
-        private static string _GenerateRandomPassword()
-        {
-            return Guid.NewGuid().ToString("N").Substring(0, 8);
-        }
-        private static string _HashPassword(string password)
-        {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
-        }
-        private bool _VerifyPassword(string password)
-        {
-            return this.PasswordHash == _HashPassword(password);
-        }
+
+        //private static string _GenerateRandomPassword()
+        //{
+        //    return Guid.NewGuid().ToString("N").Substring(0, 8);
+        //}
+        //private static string _HashPassword(string password)
+        //{
+        //    return Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
+        //}
+        //private bool _VerifyPassword(string password)
+        //{
+        //    return this.PasswordHash == _HashPassword(password);
+        //}
 
         //Validation Methods
-        private void _ValidateAdminName(string adminName)
-        {
-            if (string.IsNullOrWhiteSpace(adminName))
-                throw new ArgumentException("Admin name is required");
+        //private void _ValidateAdminName(string adminName)
+        //{
+        //    if (string.IsNullOrWhiteSpace(adminName))
+        //        throw new ArgumentException("Admin name is required");
 
-            if (adminName.Length < 8)
-                throw new ArgumentException("Admin name too short");
+        //    if (adminName.Length < 8)
+        //        throw new ArgumentException("Admin name too short");
 
-            // No spaces + only letters/numbers
-            if (!adminName.All(char.IsLetterOrDigit))
-                throw new ArgumentException("Admin name must be letters and numbers only");
-        }
-        private static void _ValidatePassword(string password)
-        {
-            if (string.IsNullOrWhiteSpace(password))
-                throw new ArgumentException("Password is required");
-        }
-        private static void _ValidatePasswordHash(string hashPassword)
-        {
-            if (string.IsNullOrWhiteSpace(hashPassword))
-                throw new ArgumentException("Invalid password hash");
-        }
-        private void _ValidatePermission(byte permissionLevel)
-        {
-            if (permissionLevel < 1 || permissionLevel > 64)
-                throw new ArgumentException("Invalid permissionLevel");
-        }
-        private void _ValidatePerson(int personId)
-        {
-            if (personId <= 0)
-                throw new ArgumentException("Invalid person id");
-        }
-        private void _ValidateCreatedBy(int createdById)
-        {
-            if (createdById <= 0)
-                throw new ArgumentException("Invalid creator");
-        }
+        //    // No spaces + only letters/numbers
+        //    if (!adminName.All(char.IsLetterOrDigit))
+        //        throw new ArgumentException("Admin name must be letters and numbers only");
+        //}
+        //private static void _ValidatePassword(string password)
+        //{
+        //    if (string.IsNullOrWhiteSpace(password))
+        //        throw new ArgumentException("Password is required");
+        //}
+        //private static void _ValidatePasswordHash(string hashPassword)
+        //{
+        //    if (string.IsNullOrWhiteSpace(hashPassword))
+        //        throw new ArgumentException("Invalid password hash");
+        //}
+        //private void _ValidatePermission(byte permissionLevel)
+        //{
+        //    if (permissionLevel < 1 || permissionLevel > 64)
+        //        throw new ArgumentException("Invalid permissionLevel");
+        //}
     }
 }
